@@ -1,2 +1,2 @@
 # Circl
-A pretty webapp for taskmanagement and productivity
+A pretty website for task management
