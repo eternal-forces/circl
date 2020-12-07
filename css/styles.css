@@ -36,7 +36,7 @@ div.sidebar div.item#account img {
 div.main {
     display: flex;
     width: calc(100vw - 80px);
-    height:100vh;
+    height: 100vh;
     background: #f1f3f4;
 }
 
@@ -46,7 +46,45 @@ div.main > div.planning > div.personal {
     width: calc(30vw - 80px);
     height: 50vh;
     border-radius: 0 0 2em 2em;
+    display: flex;
+    flex-direction: column;
 }
+
+div.main > div.planning > div.personal > div.add {
+    align-self: flex-start;
+    height: 8vh;
+    width: calc(30vw - 80px);
+    display: grid;
+    justify-content: space-evenly;
+}
+
+div.main > div.planning > div.personal > div.add > div.addTask {
+    width: 18vw;
+    height: 3vw;
+    border-radius: 1vw;
+    background: #f1f3f4;
+    text-align: center;
+}
+
+div.main > div.planning > div.personal > div.tasks {
+    height: 42vh;
+    width: calc(30vw - 80px);
+    display: grid;
+    gap: 20px;
+    justify-content: space-evenly;
+    overflow: hidden;
+    overflow-y: scroll;
+    align-self: flex-end;
+}
+
+div.main > div.planning > div.personal > div.tasks > div.box {
+    width: 18vw;
+    height: 3vw;
+    border-radius: 1vw;
+    background: #f1f3f4;
+    text-align: center;
+}
+
 div.main > div.planning > div.timed {
     margin-top: 5vh;
     align-self: flex-end;
