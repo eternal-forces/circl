@@ -121,6 +121,19 @@ $router->map('DELETE','/tasks/[i:id]', function($id) {
     }
 });
 
+$router->map('POST','/auth', function($id) {
+    global $agent;
+    prepareHeader('POST');
+    $message_contents = file_get_contents('php://input');
+    $message = json_decode($message_contents, true);
+    if(
+        isset($_POST['username']) &&
+        isset($_POST['password']) &&
+        isset($_POST['secret'])
+    ) {
+        
+    }
+})
 
 $match = $router->match();
 if( is_array($match) && is_callable( $match['target'] ) ) {

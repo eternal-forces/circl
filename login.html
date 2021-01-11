@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/login.css">
+    <title>Circl - Login</title>
+</head>
+<body>
+    <div class="side">
+        <svg id="Circl-Logo" data-name="Circl-Logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+            <defs>
+                <style>
+                    .Ring{
+                        fill:#ff482a;
+                    }
+                    
+                    .InnerRing{
+                        fill:#ff876a;
+                    }
+                    
+                    .InnerstRing{
+                        fill:#ff4033;
+                    }
+                </style>
+            </defs>
+            <circle class="Ring" cx="64" cy="64" r="64"/>
+            <circle class="InnerRing" cx="64" cy="64" r="48"/>
+            <circle class="InnerstRing" cx="64" cy="64" r="32"/>
+        </svg>
+        <h1>
+            Circl
+        </h1>
+        <form>
+            <div class="field-wrapper">
+                <input class="input" type="text" name="username" id="loginUsername">
+                <div class="field-placeholder">
+                    <label for="loginUsername">Username</label>
+                </div>
+            </div>
+            <div class="field-wrapper">
+                <input class="input" type="password" name="password" id="loginPassword">
+                <div class="field-placeholder">
+                    <label for="loginPassword">Password</label>
+                </div>
+            </div>
+            <button type="submit" name="" value="Login" class="submit">Log in</button>
+        </form>
+    </div>
+    <script src="js/login.js"></script>
+</body>
+</html>
