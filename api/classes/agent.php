@@ -12,7 +12,7 @@ class Agent extends mysqli
         if ($this -> connect_error) {
             http_response_code(500);
             echo json_encode(array("message" => "The Agent could not connect to the database, please try again later"));
-        }
+        };
     }
 
     protected function generateID($_length, $_db="USERS", $_name="ID") {
@@ -267,14 +267,15 @@ class Agent extends mysqli
         //On success: return a task object
         //On failure, raise a silent error
         if($stmt->execute()){
+            $stmt->close();
             return new Task($id, $this->getUser($user_id), $name, $description, $subject, $time, $importance, $type);
         } else {
+            $stmt->close();
             echo $this->error;
             $this->error_msg="The query could not be executed, please try another time";
             $this->http_code=500;
             return false;
         }
-        $stmt->close();
     }
 
     public function deleteTask($_id){
@@ -288,6 +289,7 @@ class Agent extends mysqli
 
         if($stmt->execute()){
             if($this->affected_rows > 0) {
+                $stmt->close();
                 return true;
             } else {
                 $this->error_msg="No task with that ID found";
@@ -295,10 +297,137 @@ class Agent extends mysqli
                 return false;
             }
         } else {
+            $stmt->close();
             $this->error_msg="The query could not be executed, please try another time";
             $this->http_code=500;
             return false;
         }
     }
+
+    public function authenticateUser($email, $password, $secret) {
+        if (session_status() == PHP_SESSION_NONE) {session_start();};
+        
+        if(isset($_SESSION['secret']) and $_SESSION['secret'] === $secret) {
+            $stmt = $this -> prepare(
+                "SELECT ID, PASSWORD
+                FROM USERS
+                WHERE EMAIL = ?
+                "
+            );
+
+            $stmt -> bind_param("s", $param_username);
+                $param_username = $email;
+            
+            if($stmt->execute()) {
+                $stmt->store_result();
+                if($stmt->num_rows > 0) {
+                    $stmt -> bind_result($user_id, $database_password);
+                    $stmt->fetch();
+                    $stmt->close();
+                    if(password_verify($password, $database_password)) {
+                        if($key = $this -> collectAPIKey($user_id)) {
+                            return [$user_id, $key];
+                        } else {
+                            return false;
+                        };
+                    } else {
+                        $this->error_msg="Password is incorrect.";
+                        $this->http_code = 401;
+                        return false;
+                    }   
+                } else {
+                    $this->error_msg="Email is incorrect";
+                    $this->http_code=404;
+                    return false;
+                }
+            } else {
+                $this->error_msg="Query could not be executed, please try another time";
+                $this->http_code=500;
+                return false;
+            }
+        } else {
+            $this->error_msg="Secret was not correct";
+            $this->http_code=401;
+            return false;
+        }
+    }
+
+    protected function collectAPIKey($user_id, $permissions=5) {
+        $stmt = $this -> prepare(
+            "INSERT INTO AUTH
+            (KEY_NO, USER_ID, PERMISSIONS, UNTIL_DATE)
+            VALUES
+            (?, ? , ? , DATE_ADD(NOW(), INTERVAL 30 MINUTE))"
+        ); 
+
+        $key = $this -> generateID(16, "AUTH", "KEY_NO");
+        $stmt -> bind_param("ssi", $param_key, $param_user_id, $param_permissions);
+            $param_key = $key;
+            $param_user_id = $user_id;
+            $param_permissions = $permissions;
+        
+        if($stmt->execute()) {
+            $stmt->close();
+            return $key;
+        } else {
+            echo $this->error;
+            $this->error_msg="Query could not be executed, please try another time";
+            $this->http_code=500;
+            $stmt->close();
+            return false;
+        }
+    }
+
+    public function authorizeUser($action_permissions, $requestant_id=NULL) {
+        $stmt = $this -> prepare(
+            "SELECT USER_ID, PERMISSIONS, UNTIL_DATE
+            FROM AUTH
+            WHERE KEY_NO = ?"
+        ); 
+        
+        $headers = apache_request_headers();
+        $key = $headers['key'];
+
+        $stmt -> bind_param("s", $param_key);
+            $param_key = $key;
+
+        if($stmt->execute()) {
+            $stmt->store_result();
+            if($stmt->num_rows > 0) {
+                $stmt -> bind_result($user_id, $database_permissions, $until_date);
+                $stmt->fetch();
+                $stmt->close();
+                $until_date = new DateTime($until_date);
+                if($until_date > new DateTime('now')) {
+                    if(
+                        !(is_null($requestant_id) and $requestant_id == $user_id) 
+                        or $database_permissions == 1
+                    ) {
+                        if ($action_permissions % $database_permissions == 0) {
+                            return True;
+                        } else {
+                            $this->error_msg="Insufficient permissions";
+                            $this->http_code = 403;
+                        }
+                    } else {
+                        $this->error_msg="Insufficient permissions";
+                        $this->http_code = 403;
+                    }
+                } else {
+                    $this->error_msg="Your key is old, please apply for a new one";
+                    $this->http_code = 401;
+                }   
+            } else {
+                $this->error_msg="Key was incorrect, this could be an old key, or just an incorrect one";
+                $this->http_code=401;
+            }
+        } else {
+            $this->error_msg="Query could not be executed, please try another time";
+            $this->http_code=500;
+        }
+
+        return false;
+    }
+
 };
 ?>
