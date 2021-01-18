@@ -325,25 +325,16 @@ div.main > div.planning > div.personal-tasks > div.add > div.addTask > form > .i
 }
 
 div.main > div.show-tasks {
-    height: 100vh;
-    width: 65vw;
-}
-
-div.main > div.show-tasks > div.title-box {
-    height: 15vh;
-    width: 65vw;
-    background-color: #ebebeb;
-}
-
-div.main > div.show-tasks > div.title-box > h1.title {
-    margin: 0;
-    line-height: 15vh;
-    text-align: center;
+    height: 95.8vh;
+    width: 62.9vw;
+    background: white;
+    margin: 4.2vh 0 0 2.1vw;
+    border-radius: 40px 0 0 0;
 }
 
 div.main > div.show-tasks > div.task-text {
-    height: 85vh;
-    width: 65vw;
+    height: 80vh;
+    width: 62.9vw;
 }
 
 div.main > div.show-tasks > div.task-text > p {
