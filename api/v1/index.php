@@ -31,7 +31,7 @@ $router->map( 'POST', '/auth', function() {
                 "user_id" => $keyPair[0],
                 "key" => $keyPair[1],
             ));
-            http_response_code(200);
+            http_response_code(201);
         } else {
             echo json_encode(array("message" => $agent->error_msg));
             http_response_code($agent->http_code);
@@ -193,7 +193,7 @@ $router->map('POST','/auth', function($id) {
     ) {
         
     }
-})
+});
 
 $match = $router->match();
 if( is_array($match) && is_callable( $match['target'] ) ) {
