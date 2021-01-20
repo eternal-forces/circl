@@ -180,13 +180,14 @@ div.main > div.planning > div.personal-tasks > div.whitespace {
 div.main > div.planning > div.personal-tasks > div.tasks {
     height: 90vh;
     width: calc(30vw - 80px);
-    display: grid;
+    padding: 0;
+    display: flex;
+    flex-flow: column;
     gap: 20px;
-    justify-content: space-evenly;
     overflow: hidden;
     overflow-y: scroll;
     align-self: flex-end;
-    align-items: self-start;
+    align-items: center;
 }
 
 div.main > div.planning > div.personal-tasks > div.tasks > div.box {
