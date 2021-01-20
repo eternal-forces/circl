@@ -31,7 +31,6 @@ function updateTime(_timeElement, _dateElement) {
 
     var minutes = time.getMinutes()
     if (minutes < 10) {
-        console.log(minutes)
         minutes = "0"+minutes.toString()
     }
     var hours = time.getHours()

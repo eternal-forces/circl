@@ -1,6 +1,7 @@
 <?php
 include_once "user.php";
 include_once "task.php";
+include_once "shortcut.php";
 
 class Agent extends mysqli
 {
@@ -293,6 +294,126 @@ class Agent extends mysqli
                 return true;
             } else {
                 $this->error_msg="No task with that ID found";
+                $this->http_code=404;
+                return false;
+            }
+        } else {
+            $stmt->close();
+            $this->error_msg="The query could not be executed, please try another time";
+            $this->http_code=500;
+            return false;
+        }
+    }
+
+
+    public function getShortcutsByUser($_user_id) {
+        $stmt = $this -> prepare(
+            "SELECT u.name, u.email, u.created_on, s.SHORTCUT_ID, s.USER_ID, s.LINK, s.PICTURE_URL
+            FROM tasks t, shortcuts s
+            WHERE u.id = s.user_id 
+            AND s.USER_ID = ?"
+        );
+
+        $stmt->bind_param("s", $param_id);
+            $param_id = htmlspecialchars($_user_id);
+
+        if($stmt->execute()){
+            $stmt->store_result();
+            // if($stmt->num_rows > 0) {
+                $stmt->bind_result($u_name, $u_email, $u_created_at, $id, $user_id, $link, $picture_url);
+                $user_array = array();
+                while($stmt->fetch()) {
+                    array_push($user_array, new Shortcut($id, new User($user_id, $u_name, $u_email, $u_created_at), $link, $picture_url));
+                }
+                return $user_array;
+            // } else {
+            //     $this->error_msg="No task with that ID found";
+            //     $this->http_code=404;
+            //     return false;
+            // }
+        } else {
+            $this->error_msg="The query could not be executed, please try another time";
+            $this->http_code=500;
+            return false;
+        }
+    }
+
+    public function getShortcut($_id) {
+        $stmt = $this -> prepare(
+            "SELECT u.name, u.email, u.created_on, s.SHORTCUT_ID, s.USER_ID, s.LINK, s.PICTURE_URL
+            FROM tasks t, shortcuts s
+            WHERE u.id = s.user_id 
+            AND s.TASK_ID = ?"
+        );
+
+        $stmt->bind_param("s", $param_id);
+            $param_id = htmlspecialchars($_id);
+
+        if($stmt->execute()){
+            $stmt->store_result();
+            if($stmt->num_rows > 0) {
+                $stmt->bind_result($u_name, $u_email, $u_created_at, $id, $user_id, $link, $picture_url);
+                $stmt->fetch();
+                return new Shortcut($id, new User($user_id, $u_name, $u_email, $u_created_at), $link, $picture_url);
+            } else {
+                $this->error_msg="No shortcut with that ID found";
+                $this->http_code=404;
+                return false;
+            }
+        } else {
+            $this->error_msg="The query could not be executed, please try another time";
+            $this->http_code=500;
+            return false;
+        }
+    }
+
+    public function createShortcut($_user_id, $_link, $_image_url) {
+        $_id = $this -> generateID(16, "SHORTCUTS", "SHORTCUT_ID");
+        $stmt = $this -> prepare(
+            "INSERT INTO SHORTCUTS
+            (SHORTCUT_ID, USER_ID, LINK, PICTURE_URL)
+            VALUES 
+            (?, ?, ?, ?)"
+        );
+
+        //Set up the parameters
+        $stmt->bind_param("ssss", $id, $user_id, $link, $picture_url);
+            // Bind the parameters
+            $id = $_id;
+            $user_id = $_user_id;
+            $link = $_link;
+            $picture_url = $_image_url;
+        
+        //Execute the query and check for errors.
+        //On success: return a task object
+        //On failure, raise a silent error
+        if($stmt->execute()){
+            $stmt->close();
+            return new Shortcut($id, $this->getUser($user_id), $link, $picture_url);
+        } else {
+            $stmt->close();
+            echo $this->error;
+            $this->error_msg="The query could not be executed, please try another time";
+            $this->http_code=500;
+            return false;
+        }
+    }
+    
+    public function deleteShortcut($_id){
+        $stmt = $this -> prepare(
+            "DELETE FROM SHORTCUT
+            WHERE SHORTCUT_ID = ?"
+        );
+
+        $stmt->bind_param("s", $param_id);
+            $param_id = htmlspecialchars($_id);
+
+        if($stmt->execute()){
+            if($this->affected_rows > 0) {
+                $stmt->close();
+                return true;
+            } else {
+                $this->error_msg="No shortcut with that ID found";
                 $this->http_code=404;
                 return false;
             }

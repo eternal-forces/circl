@@ -30,6 +30,7 @@ const main = () => {
 
         const authenticationRequest = new Request('http://localhost/circl/api/v1/auth', {
             method: 'POST',
+            mode: 'no-cors',
             body: body,
         })
 
@@ -43,6 +44,7 @@ const main = () => {
             } else {
                 //warnUserAboutServerError()
                 console.error("Something went wrong on our part, sorry for the inconvenience")
+                console.log(response.json())
                 return Promise.reject("error500")
             }
         })
