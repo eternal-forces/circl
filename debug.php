@@ -1,3 +1,3 @@
 <?php
-var_dump(apache_request_headers())
+echo(password_hash("pi31415", PASSWORD_DEFAULT));
 ?>

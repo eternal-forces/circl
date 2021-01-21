@@ -9,7 +9,7 @@ include_once "../classes/user.php";
 $agent = new Agent();
 
 $router = new Router();
-$router->setBasePath("/circl-api/v1");
+$router->setBasePath("/circl/api/v1");
 
 $router->map( 'POST', '/auth', function() {
     global $agent;
@@ -31,7 +31,7 @@ $router->map( 'POST', '/auth', function() {
                 "user_id" => $keyPair[0],
                 "key" => $keyPair[1],
             ));
-            http_response_code(200);
+            http_response_code(201);
         } else {
             echo json_encode(array("message" => $agent->error_msg));
             http_response_code($agent->http_code);
@@ -144,9 +144,8 @@ $router->map('POST','/users/[i:id]/tasks', function($id) {
             isset($message["type"])
         ){
             $time = isset($message["time"]) ? $message["time"] : null;
-
-
             $task = $agent -> createTask($id, $message["name"], $message["description"], $message["subject"], $message["importance"], $message["type"], $time);
+            
             if ($task) {
                 echo $task->encode();
                 http_response_code(201);
@@ -181,20 +180,103 @@ $router->map('DELETE','/tasks/[i:id]', function($id) {
     };
 });
 
-$router->map('POST','/auth', function($id) {
+//===============// Shortcuts //===============//
+$router->map('GET','/users/[i:id]/shortcuts', function($id) {
     global $agent;
-    prepareHeader('POST');
-    $message_contents = file_get_contents('php://input');
-    $message = json_decode($message_contents, true);
-    if(
-        isset($_POST['username']) &&
-        isset($_POST['password']) &&
-        isset($_POST['secret'])
-    ) {
-        
-    }
-})
+    prepareHeader("GET, POST");
+    if($agent -> authorizeUser(5, htmlspecialchars($id))) {
+        $shortcuts = $agent -> getShortcutsByUser(htmlspecialchars($id));
+        if (count($shortcuts) > 0) {
+            $message = array(
+                "user_id" => $shortcuts[0]->user->id,
+                "shortcuts" => array()
+            );
 
+            foreach ($shortcuts as $index => $shortcut) {
+                array_push($message["shortcuts"], $shortcut->encode(true));
+            }
+            
+            echo json_encode($message);
+            http_response_code(200);
+        } else {
+            echo json_encode(array("message" => "No tasks"));
+            http_response_code(404);
+        }
+    } else {
+        echo json_encode(array("message" => $agent->error_msg));
+        http_response_code($agent->http_code);
+    };
+});
+
+$router->map('GET','/shortcuts/[i:id]', function($id) {
+    global $agent;
+    prepareHeader("GET, POST");
+    if($agent -> authorizeUser(5, htmlspecialchars($id))) {
+        $shortcut = $agent -> getShortcut(htmlspecialchars($id));
+        if ($shortcut) {
+            echo $task -> encode();
+            http_response_code(200);
+        } else {
+            echo json_encode(array("message" => $agent->error_msg));
+            http_response_code($agent->http_code);
+        }
+    } else {
+        echo json_encode(array("message" => $agent->error_msg));
+        http_response_code($agent->http_code);
+    };
+});
+
+$router->map('POST','/users/[i:id]/shortcuts', function($id) {
+    global $agent;
+    prepareHeader('GET, POST');
+    if($agent -> authorizeUser(5, htmlspecialchars($id))) {
+        $message_contents = file_get_contents('php://input');
+        $message = json_decode($message_contents, true);
+
+        if(
+            (count($message) == 2) 
+            and isset($message["link"])
+            and isset($message["image_url"])
+        ){
+            $task = $agent -> createShortcut($id, $message["link"], $message["image_url"]);
+            
+            if ($task) {
+                echo $task->encode();
+                http_response_code(201);
+            } else {
+                echo json_encode(array("message" => $agent->error_msg));
+                http_response_code($agent->http_code);
+            }
+        } else {
+            echo json_encode(array("message" => "Invalid parameters"));
+            http_response_code(400);
+        }
+} else {
+    echo json_encode(array("message" => $agent->error_msg));
+    http_response_code($agent->http_code);
+};
+});
+
+$router->map('DELETE','/tasks/[i:id]', function($id) {
+    global $agent;
+    prepareHeader('DELETE');
+    if($agent -> authorizeUser(5, htmlspecialchars($id))) {
+        $results = $agent->deleteShortcut($id);
+        if($results){
+            http_response_code(204);
+        } else {
+            echo json_encode(array("message" => $agent->error_msg));
+            http_response_code($agent->http_code);
+        }
+    } else {
+        echo json_encode(array("message" => $agent->error_msg));
+        http_response_code($agent->http_code);
+    };
+});
+
+
+
+//==================// Matching //==================//
 $match = $router->match();
 if( is_array($match) && is_callable( $match['target'] ) ) {
 	call_user_func_array( $match['target'], $match['params'] ); 

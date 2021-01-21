@@ -23,7 +23,6 @@ const months = [
     'Saturday'
   ]
 function updateTime(_timeElement, _dateElement) {
-    console.log("I'm doing something")
     const time = new Date();
     const date = time.getDate()
     const day = days[time.getDay()]
@@ -32,7 +31,6 @@ function updateTime(_timeElement, _dateElement) {
 
     var minutes = time.getMinutes()
     if (minutes < 10) {
-        console.log(minutes)
         minutes = "0"+minutes.toString()
     }
     var hours = time.getHours()
@@ -60,13 +58,8 @@ function start() {
     updateTime(timeElement, dateElement)
     
     const time = new Date();
-    console.log(time)
     const timeTillStart = 60000 - time.getMilliseconds() - time.getSeconds()*1000
-    console.log(timeTillStart)
     setTimeout(startTime,timeTillStart, timeElement, dateElement)
-    var test = [...Array(16)].map(i=>(~~(Math.random()*36)).toString(36)).join('')
-    console.log(test)
-    console.log(test.length)
 }
 
-start()
+export {start};

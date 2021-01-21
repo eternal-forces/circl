@@ -1,10 +1,21 @@
 const main = () => {
-    document.querySelectorAll(".field-placeholder").forEach((e) => {
-        e.addEventListener("click", (e) => {
-            console.log(e.target.parentElement.children[0])
-            e.target.parentElement.children[0].click()
+    document.querySelectorAll(".field-wrapper .field-placeholder").forEach((e)=>{
+        e.addEventListener("click", () => {
+            e.parentElement.children[0].focus()
         })
     })
+
+    document.querySelectorAll(".field-wrapper input").forEach((i)=>{
+        i.addEventListener("keyup", () => {
+            var p = i.parentElement.classList
+            if(i.value.trim()) {
+                p.add("hasValue");
+            } else {
+                p.remove("hasValue");
+            }
+        })
+    })
+    
 
     document.querySelector("button.submit").addEventListener("click", (e) => {
         e.preventDefault() 
@@ -13,21 +24,59 @@ const main = () => {
 
         let body = JSON.stringify({
             email: input[0].value,
-            password: input[0].value,
+            password: input[1].value,
+            secret: "cocaine"
         })
 
-        const authenticationRequest = new Request('websites.dekkerwebdesign.com/circl/api/v1/auth', {
+        const authenticationRequest = new Request('http://localhost/circl/api/v1/auth', {
             method: 'POST',
+            mode: 'no-cors',
             body: body,
-            test: "test",
         })
 
         fetch(authenticationRequest)
-        .then((request) => {
-            if(request.status == 201) {
-                
+        .then((response) => {
+            if(response.status == 201) {
+                return response.json()      
+            } else if (response.status == 401){
+                //warnUserAboutWrongCredentials()
+                return Promise.reject("wrongCredentials")
+            } else {
+                //warnUserAboutServerError()
+                console.error("Something went wrong on our part, sorry for the inconvenience")
+                console.log(response.json())
+                return Promise.reject("error500")
             }
         })
+        .then((request) => {
+            console.log("I AM IN!")
+            user_id = request['user_id']
+            key = request['key']
+            localStorage.setItem("Key", key)
+            localStorage.setItem("ID", user_id)
+            window.location.assign("http://localhost/circl/dashboard.html")
+        })
+        .catch(err => console.log(err))
+    })
+}
+
+const loadMainPage = () => {
+    const pageRequest = new Request('http://localhost/circl/dashboard.html', {
+        method: 'GET'
+    })
+
+    fetch(pageRequest)
+    .then((response) => {
+        if(response.status == 200) {
+            return response.text()
+        }
+    })
+    .then((html) => {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, "text/html")
+        console.log(doc.head)
+        document.head = doc.head
+        document.body = doc.body
     })
 }
 
@@ -52,6 +101,4 @@ const onload = () => {
     main()
 }
 
-window.onload = () => {
-    onload()
-}
+window.onload = onload

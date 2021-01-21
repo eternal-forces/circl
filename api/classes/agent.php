@@ -1,6 +1,7 @@
 <?php
 include_once "user.php";
 include_once "task.php";
+include_once "shortcut.php";
 
 class Agent extends mysqli
 {
@@ -304,6 +305,126 @@ class Agent extends mysqli
         }
     }
 
+
+    public function getShortcutsByUser($_user_id) {
+        $stmt = $this -> prepare(
+            "SELECT u.name, u.email, u.created_on, s.SHORTCUT_ID, s.USER_ID, s.LINK, s.PICTURE_URL
+            FROM tasks t, shortcuts s
+            WHERE u.id = s.user_id 
+            AND s.USER_ID = ?"
+        );
+
+        $stmt->bind_param("s", $param_id);
+            $param_id = htmlspecialchars($_user_id);
+
+        if($stmt->execute()){
+            $stmt->store_result();
+            // if($stmt->num_rows > 0) {
+                $stmt->bind_result($u_name, $u_email, $u_created_at, $id, $user_id, $link, $picture_url);
+                $user_array = array();
+                while($stmt->fetch()) {
+                    array_push($user_array, new Shortcut($id, new User($user_id, $u_name, $u_email, $u_created_at), $link, $picture_url));
+                }
+                return $user_array;
+            // } else {
+            //     $this->error_msg="No task with that ID found";
+            //     $this->http_code=404;
+            //     return false;
+            // }
+        } else {
+            $this->error_msg="The query could not be executed, please try another time";
+            $this->http_code=500;
+            return false;
+        }
+    }
+
+    public function getShortcut($_id) {
+        $stmt = $this -> prepare(
+            "SELECT u.name, u.email, u.created_on, s.SHORTCUT_ID, s.USER_ID, s.LINK, s.PICTURE_URL
+            FROM tasks t, shortcuts s
+            WHERE u.id = s.user_id 
+            AND s.TASK_ID = ?"
+        );
+
+        $stmt->bind_param("s", $param_id);
+            $param_id = htmlspecialchars($_id);
+
+        if($stmt->execute()){
+            $stmt->store_result();
+            if($stmt->num_rows > 0) {
+                $stmt->bind_result($u_name, $u_email, $u_created_at, $id, $user_id, $link, $picture_url);
+                $stmt->fetch();
+                return new Shortcut($id, new User($user_id, $u_name, $u_email, $u_created_at), $link, $picture_url);
+            } else {
+                $this->error_msg="No shortcut with that ID found";
+                $this->http_code=404;
+                return false;
+            }
+        } else {
+            $this->error_msg="The query could not be executed, please try another time";
+            $this->http_code=500;
+            return false;
+        }
+    }
+
+    public function createShortcut($_user_id, $_link, $_image_url) {
+        $_id = $this -> generateID(16, "SHORTCUTS", "SHORTCUT_ID");
+        $stmt = $this -> prepare(
+            "INSERT INTO SHORTCUTS
+            (SHORTCUT_ID, USER_ID, LINK, PICTURE_URL)
+            VALUES 
+            (?, ?, ?, ?)"
+        );
+
+        //Set up the parameters
+        $stmt->bind_param("ssss", $id, $user_id, $link, $picture_url);
+            // Bind the parameters
+            $id = $_id;
+            $user_id = $_user_id;
+            $link = $_link;
+            $picture_url = $_image_url;
+        
+        //Execute the query and check for errors.
+        //On success: return a task object
+        //On failure, raise a silent error
+        if($stmt->execute()){
+            $stmt->close();
+            return new Shortcut($id, $this->getUser($user_id), $link, $picture_url);
+        } else {
+            $stmt->close();
+            echo $this->error;
+            $this->error_msg="The query could not be executed, please try another time";
+            $this->http_code=500;
+            return false;
+        }
+    }
+    
+    public function deleteShortcut($_id){
+        $stmt = $this -> prepare(
+            "DELETE FROM SHORTCUT
+            WHERE SHORTCUT_ID = ?"
+        );
+
+        $stmt->bind_param("s", $param_id);
+            $param_id = htmlspecialchars($_id);
+
+        if($stmt->execute()){
+            if($this->affected_rows > 0) {
+                $stmt->close();
+                return true;
+            } else {
+                $this->error_msg="No shortcut with that ID found";
+                $this->http_code=404;
+                return false;
+            }
+        } else {
+            $stmt->close();
+            $this->error_msg="The query could not be executed, please try another time";
+            $this->http_code=500;
+            return false;
+        }
+    }
+
     public function authenticateUser($email, $password, $secret) {
         if (session_status() == PHP_SESSION_NONE) {session_start();};
         
@@ -331,13 +452,13 @@ class Agent extends mysqli
                             return false;
                         };
                     } else {
-                        $this->error_msg="Password is incorrect.";
+                        $this->error_msg="Credentials are incorrect.";
                         $this->http_code = 401;
                         return false;
                     }   
                 } else {
-                    $this->error_msg="Email is incorrect";
-                    $this->http_code=404;
+                    $this->error_msg="Credentials are incorrect";
+                    $this->http_code=401;
                     return false;
                 }
             } else {
@@ -353,27 +474,101 @@ class Agent extends mysqli
     }
 
     protected function collectAPIKey($user_id, $permissions=5) {
-        $stmt = $this -> prepare(
+        if (!($key = $this->userAlreadyHasKey($user_id))) {
+            $stmt = $this -> prepare(
             "INSERT INTO AUTH
-            (KEY_NO, USER_ID, PERMISSIONS, UNTIL_DATE)
-            VALUES
-            (?, ? , ? , DATE_ADD(NOW(), INTERVAL 30 MINUTE))"
+                (KEY_NO, USER_ID, PERMISSIONS, UNTIL_DATE)
+                VALUES
+                (?, ? , ? , DATE_ADD(NOW(), INTERVAL 30 MINUTE))"
+            ); 
+    
+            $key = $this -> generateID(16, "AUTH", "KEY_NO");
+            $stmt -> bind_param("ssi", $param_key, $param_user_id, $param_permissions);
+                $param_key = $key;
+                $param_user_id = $user_id;
+                $param_permissions = $permissions;
+            
+            if($stmt->execute()) {
+                $stmt->close();
+                return $key;
+            } else {
+                $this->error_msg="Query could not be executed, please try another time";
+                $this->http_code=500;
+                $stmt->close();
+                return false;
+            }
+        } else {
+            return $key;
+        }
+    }
+
+    protected function userAlreadyHasKey($user_id) {
+        $stmt = $this -> prepare(
+            "SELECT KEY_NO, UNTIL_DATE
+            FROM AUTH
+            WHERE USER_ID = ?"
         ); 
 
-        $key = $this -> generateID(16, "AUTH", "KEY_NO");
-        $stmt -> bind_param("ssi", $param_key, $param_user_id, $param_permissions);
-            $param_key = $key;
+        $stmt -> bind_param("s", $param_user_id);
             $param_user_id = $user_id;
-            $param_permissions = $permissions;
+
+        if($stmt->execute()) {
+            $stmt->store_result();
+            if($stmt->num_rows > 0) {
+                $stmt -> bind_result($key, $until_date);
+                $stmt->fetch();
+                $stmt->close();
+                
+                $until_date = new DateTime($until_date);
+                if($until_date > new DateTime('now')) {
+                    if ($this->prolongUserKey($key)) {
+                        return $key;
+                    } else {
+                        return False;
+                    }
+                } else {
+                    $this -> removeUserKey($key);
+                    return False;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    protected function prolongUserKey($key) {
+        $stmt = $this -> prepare(
+            "UPDATE AUTH
+            SET UNTIL_DATE = DATE_ADD(NOW(), INTERVAL 30 MINUTE)
+            WHERE KEY_NO = ?"
+        );
+
+        $stmt -> bind_param("s", $param_key);
+            $param_key = $key;
         
         if($stmt->execute()) {
             $stmt->close();
-            return $key;
+            return true;
         } else {
-            echo $this->error;
-            $this->error_msg="Query could not be executed, please try another time";
-            $this->http_code=500;
+            return false;
+        }
+    }
+
+    protected function removeUserKey($key) {
+        $stmt = $this -> prepare(
+            "DELETE FROM AUTH
+            WHERE KEY_NO = ?"
+        );
+
+        $stmt -> bind_param("s", $param_key);
+            $param_key = $key;
+        
+        if($stmt->execute()) {
             $stmt->close();
+            return true;
+        } else {
             return false;
         }
     }
